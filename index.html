@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>但愿人长久 · 2026 中秋</title>
+<style>
+/* ===== 基础重置 ===== */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  height:100%;
+  overflow:hidden;              /* 无滚动条 */
+  background:#0F172A;           /* 深蓝夜空 */
+}
+body{
+  font-family:"STKaiti","KaiTi","Kaiti SC","Songti SC","SimSun","PingFang SC","Microsoft YaHei",serif;
+  color:#F8FAFC;
+  -webkit-font-smoothing:antialiased;
+  /* 鼠标光晕跟随的偏移量，JS 实时写入 */
+  --gx:0px; --gy:0px;
+}
+
+/* ===== 星空层（纯 CSS 渐变绘制，不占额外节点） ===== */
+.stars{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    radial-gradient(1.6px 1.6px at 8% 14%,  rgba(248,250,252,.85) 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 22% 42%, rgba(248,250,252,.60) 50%, transparent 51%),
+    radial-gradient(1.8px 1.8px at 35% 8%,  rgba(248,250,252,.75) 50%, transparent 51%),
+    radial-gradient(1.1px 1.1px at 48% 30%, rgba(248,250,252,.50) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 62% 17%, rgba(248,250,252,.70) 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 75% 38%, rgba(248,250,252,.55) 50%, transparent 51%),
+    radial-gradient(1.7px 1.7px at 88% 12%, rgba(248,250,252,.80) 50%, transparent 51%),
+    radial-gradient(1.1px 1.1px at 15% 68%, rgba(248,250,252,.45) 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 70% 62%, rgba(248,250,252,.50) 50%, transparent 51%),
+    radial-gradient(1.3px 1.3px at 92% 74%, rgba(248,250,252,.55) 50%, transparent 51%);
+  animation:twinkle 5s ease-in-out infinite;   /* 星星整体呼吸闪烁 */
+}
+@keyframes twinkle{
+  0%,100%{opacity:.55}
+  50%    {opacity:1}
+}
+
+/* ===== 花瓣层 ===== */
+.petals{position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden}
+/* 外层负责垂直下落 */
+.petal{
+  position:absolute; top:-6vh;
+  will-change:transform;
+  animation:fall linear forwards;
+}
+/* 内层负责左右摇摆 + 自转，避免与下落动画的 transform 冲突 */
+.petal i{
+  display:block; width:100%; height:100%;
+  border-radius:50%;
+  background:#FECDD3;
+  animation:sway ease-in-out infinite alternate;
+}
+@keyframes fall{
+  to{transform:translate3d(0,114vh,0)}
+}
+@keyframes sway{
+  from{transform:translateX(-14px) rotate(0deg)}
+  to  {transform:translateX(14px)  rotate(180deg)}
+}
+
+/* ===== 主舞台：垂直居中 ===== */
+.stage{
+  position:relative; z-index:2;
+  height:100%;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:clamp(10px,2.2vmin,22px);
+  padding:clamp(16px,4vmin,40px);
+  text-align:center;
+}
+
+/* ===== 月亮 + 玉兔 ===== */
+.moon-area{
+  position:relative;
+  width:clamp(120px,26vmin,210px);
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+/* 光晕外层：跟随鼠标轻微偏移（与呼吸动画分层，互不干扰） */
+.glow-follow{
+  position:absolute; left:50%; top:0;
+  width:100%; height:0; padding-bottom:100%;
+  transform:translate(calc(-50% + var(--gx)), var(--gy));
+  transition:transform .45s cubic-bezier(.22,.61,.36,1);
+}
+/* 光晕本体：暖黄呼吸，6 秒一次明暗交替 */
+.glow{
+  position:absolute; inset:-42%;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(251,191,36,.55) 0%, rgba(251,191,36,.22) 38%, rgba(251,191,36,0) 70%);
+  animation:breathe 6s ease-in-out infinite;
+}
+@keyframes breathe{
+  0%,100%{opacity:.45; transform:scale(.92)}
+  50%    {opacity:1;   transform:scale(1.08)}
+}
+/* 月盘 */
+.moon{
+  position:relative;
+  width:100%; height:0; padding-bottom:100%;
+  border-radius:50%;
+  background:radial-gradient(circle at 36% 32%, #FFFFFF 0%, #F8FAFC 55%, #E2E8F0 100%);
+  box-shadow:0 0 30px rgba(248,250,252,.45), 0 0 80px rgba(251,191,36,.25);
+  transition:transform .25s ease;
+}
+/* 月面淡淡的环形山阴影 */
+.moon::after{
+  content:""; position:absolute; inset:0; border-radius:50%;
+  background:
+    radial-gradient(circle at 30% 62%, rgba(203,213,225,.55) 0 8%, transparent 9%),
+    radial-gradient(circle at 66% 40%, rgba(203,213,225,.45) 0 6%, transparent 7%),
+    radial-gradient(circle at 58% 72%, rgba(203,213,225,.40) 0 5%, transparent 6%);
+}
+.moon-area:hover .moon{transform:scale(1.03)}
+.moon-area:active .moon{transform:scale(.97)}
+
+/* 玉兔：位于月亮下方，缓慢上下浮动 */
+.rabbit{
+  position:absolute; left:50%; bottom:calc(-1 * clamp(38px,9vmin,74px));
+  width:clamp(44px,10vmin,78px);
+  transform:translateX(-50%);
+  animation:float 4.5s ease-in-out infinite;
+  filter:drop-shadow(0 0 6px rgba(251,191,36,.35));
+}
+.rabbit svg{display:block; width:100%; height:auto}
+@keyframes float{
+  0%,100%{transform:translate(-50%,0)}
+  50%    {transform:translate(-50%,-10px)}
+}
+/* 给玉兔和月亮之间留出间距 */
+.moon-area{margin-bottom:clamp(46px,10vmin,84px)}
+
+/* ===== 文字 ===== */
+h1{
+  font-size:clamp(22px,6.2vmin,44px);
+  font-weight:400;
+  letter-spacing:.14em;
+  color:#FBBF24;
+  text-shadow:0 0 18px rgba(251,191,36,.35);
+  line-height:1.5;
+}
+.subtitle{
+  font-size:clamp(13px,2.9vmin,18px);
+  letter-spacing:.42em;
+  color:rgba(248,250,252,.72);
+}
+.subtitle::before,.subtitle::after{
+  content:""; display:inline-block; vertical-align:middle;
+  width:clamp(18px,5vmin,46px); height:1px; margin:0 10px;
+  background:linear-gradient(90deg,transparent,rgba(248,250,252,.45));
+}
+.subtitle::after{background:linear-gradient(90deg,rgba(248,250,252,.45),transparent)}
+
+/* 诗句 / 寄语展示区 */
+.verse-box{
+  min-height:clamp(74px,16vmin,116px);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:8px;
+  max-width:min(88vw,640px);
+}
+.verse{
+  font-size:clamp(14px,3.4vmin,22px);
+  line-height:1.9;
+  color:#F8FAFC;
+  letter-spacing:.06em;
+  transition:opacity .28s ease, transform .28s ease;
+}
+.verse.from{color:rgba(248,250,252,.55); font-size:clamp(11px,2.4vmin,14px); letter-spacing:.1em}
+/* 切换时的淡入淡出 */
+.verse-box.swap .verse,.verse-box.swap .verse.from{
+  opacity:0; transform:translateY(8px);
+}
+.hint{
+  font-size:clamp(10px,2.2vmin,13px);
+  color:rgba(248,250,252,.35);
+  letter-spacing:.16em;
+}
+
+/* ===== 底部链接与版权 ===== */
+.footer{
+  position:fixed; left:0; right:0; bottom:0; z-index:3;
+  padding:14px 12px calc(14px + env(safe-area-inset-bottom));
+  text-align:center;
+}
+.links{display:flex; justify-content:center; align-items:center; gap:14px}
+.links a{
+  color:rgba(248,250,252,.62);
+  text-decoration:none;
+  font-size:clamp(12px,2.5vmin,15px);
+  letter-spacing:.08em;
+  transition:color .25s ease, text-shadow .25s ease;
+}
+.links a:hover,.links a:focus-visible{
+  color:#FBBF24;
+  text-shadow:0 0 12px rgba(251,191,36,.6);
+}
+.links .sep{color:rgba(248,250,252,.25)}
+.copy{
+  margin-top:8px;
+  font-size:clamp(10px,2vmin,12px);
+  color:rgba(248,250,252,.32);
+  letter-spacing:.06em;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+
+/* ===== 降低动效偏好：关闭装饰动画 ===== */
+@media (prefers-reduced-motion:reduce){
+  .stars,.glow,.rabbit,.petal,.petal i{animation:none}
+}
+</style>
+</head>
+<body>
+
+<!-- 星空 -->
+<div class="stars"></div>
+<!-- 桂花花瓣容器（JS 动态注入） -->
+<div class="petals" id="petals"></div>
+
+<main class="stage">
+  <!-- 月亮 + 玉兔（点击月亮切换诗句） -->
+  <div class="moon-area" id="moonArea" role="button" tabindex="0" aria-label="点击月亮切换诗句或寄语">
+    <div class="glow-follow"><div class="glow"></div></div>
+    <div class="moon"></div>
+    <!-- 玉兔：简约白色 SVG -->
+    <div class="rabbit" aria-hidden="true">
+      <svg viewBox="0 0 100 108" xmlns="http://www.w3.org/2000/svg">
+        <!-- 耳朵 -->
+        <ellipse cx="37" cy="26" rx="7.5" ry="24" fill="#F8FAFC" transform="rotate(-13 37 26)"/>
+        <ellipse cx="63" cy="26" rx="7.5" ry="24" fill="#F8FAFC" transform="rotate(13 63 26)"/>
+        <ellipse cx="37" cy="28" rx="3"   ry="15" fill="#FECDD3" opacity=".75" transform="rotate(-13 37 28)"/>
+        <ellipse cx="63" cy="28" rx="3"   ry="15" fill="#FECDD3" opacity=".75" transform="rotate(13 63 28)"/>
+        <!-- 身体 -->
+        <ellipse cx="50" cy="82" rx="24" ry="21" fill="#F8FAFC"/>
+        <!-- 头 -->
+        <circle cx="50" cy="56" r="19" fill="#F8FAFC"/>
+        <!-- 尾巴 -->
+        <circle cx="77" cy="80" r="8" fill="#FEF3F4"/>
+        <!-- 脚 -->
+        <ellipse cx="38" cy="100" rx="9" ry="6" fill="#F8FAFC"/>
+        <ellipse cx="62" cy="100" rx="9" ry="6" fill="#F8FAFC"/>
+        <!-- 眼睛 -->
+        <circle cx="43.5" cy="55" r="2.4" fill="#0F172A"/>
+        <circle cx="56.5" cy="55" r="2.4" fill="#0F172A"/>
+        <!-- 鼻子与嘴 -->
+        <path d="M50 60 q-3.5 3 -7 0" stroke="#0F172A" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        <circle cx="50" cy="61.5" r="1.6" fill="#FECDD3"/>
+      </svg>
+    </div>
+  </div>
+
+  <h1>但愿人长久，千里共婵娟</h1>
+  <div class="subtitle">2026 中秋</div>
+
+  <!-- 诗句 / 寄语展示区 -->
+  <div class="verse-box" id="verseBox">
+    <div class="verse" id="verseText">今夜月明人尽望，不知秋思落谁家。</div>
+    <div class="verse from" id="verseFrom">—— 王建《十五夜望月》</div>
+  </div>
+
+  <div class="hint">轻触月亮，换个祝福</div>
+</main>
+
+<footer class="footer">
+  <nav class="links">
+    <a href="https://github.com/LavaIT" target="_blank" rel="noopener noreferrer">GitHub</a>
+    <span class="sep">·</span>
+    <a href="https://gitee.com/LavaIT" target="_blank" rel="noopener noreferrer">Gitee</a>
+  </nav>
+  <p class="copy">Copyright 2026 Lava. All rights reserved.</p>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =======================================================
+     1. 诗句 / 寄语数据
+     ======================================================= */
+  var POEMS = [
+    { text: '但愿人长久，千里共婵娟。',     from: '—— 苏轼《水调歌头》' },
+    { text: '今夜月明人尽望，不知秋思落谁家。', from: '—— 王建《十五夜望月》' },
+    { text: '海上生明月，天涯共此时。',     from: '—— 张九龄《望月怀远》' },
+    { text: '露从今夜白，月是故乡明。',     from: '—— 杜甫《月夜忆舍弟》' },
+    { text: '此生此夜不长好，明月明年何处看。', from: '—— 苏轼《阳关曲·中秋月》' },
+    { text: '西北望乡何处是，东南见月几回圆。', from: '—— 白居易《八月十五日夜湓亭望月》' }
+  ];
+  var WISHES = [
+    { text: '月圆人圆事事圆，花好灯好年年好。', from: '中秋寄语' },
+    { text: '桂香盈袖，阖家团圆，岁岁长安。',   from: '中秋寄语' },
+    { text: '一轮明月寄相思，万里清辉共此时。', from: '中秋寄语' },
+    { text: '愿你所盼皆如期，所念之人皆安康。', from: '中秋寄语' },
+    { text: '心有明月，何惧夜长；人间团圆，岁岁皆安。', from: '中秋寄语' },
+    { text: '花好月圆夜，人间共团圆；愿你此岁无忧，来年更好。', from: '中秋寄语' }
+  ];
+
+  var verseBox  = document.getElementById('verseBox');
+  var verseText = document.getElementById('verseText');
+  var verseFrom = document.getElementById('verseFrom');
+  var moonArea  = document.getElementById('moonArea');
+
+  // type: 'poem' 古诗 / 'wish' 祝福，交替切换
+  var type = 'poem';
+  var lastIndex = -1;
+  var swapping = false;
+
+  /* 从指定分类中随机取一条（避免连续重复） */
+  function pick(list) {
+    var i;
+    do { i = Math.floor(Math.random() * list.length); } while (i === lastIndex && list.length > 1);
+    lastIndex = i;
+    return list[i];
+  }
+
+  /* 切换文本：淡出 -> 换字 -> 淡入 */
+  function switchVerse() {
+    if (swapping) return;
+    swapping = true;
+
+    var item = (type === 'poem') ? pick(POEMS) : pick(WISHES);
+    verseBox.classList.add('swap');
+    setTimeout(function () {
+      verseText.textContent = item.text;
+      verseFrom.textContent = item.from;
+      verseBox.classList.remove('swap');
+      swapping = false;
+    }, 280);
+
+    // 下一次点击切换到另一类
+    type = (type === 'poem') ? 'wish' : 'poem';
+  }
+
+  /* =======================================================
+     2. 交互一：点击月亮切换诗句 / 寄语
+     ======================================================= */
+  moonArea.addEventListener('click', switchVerse);
+  moonArea.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchVerse(); }
+  });
+
+  /* =======================================================
+     3. 交互二：鼠标移动时，月亮光晕轻微跟随光标偏移
+        用 rAF 节流，只写 CSS 变量，动画交给 CSS 过渡
+     ======================================================= */
+  var pending = false, mx = 0, my = 0;
+  window.addEventListener('mousemove', function (e) {
+    mx = e.clientX; my = e.clientY;
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(function () {
+      pending = false;
+      // 归一化到 [-1, 1]，再乘以最大偏移距离（约 16px）
+      var dx = (mx / window.innerWidth  - 0.5) * 2;
+      var dy = (my / window.innerHeight - 0.5) * 2;
+      document.body.style.setProperty('--gx', (dx * 16).toFixed(2) + 'px');
+      document.body.style.setProperty('--gy', (dy * 16).toFixed(2) + 'px');
+    });
+  }, { passive: true });
+
+  /* =======================================================
+     4. 桂花花瓣：JS 动态生成 + animationend 自动销毁
+        同时限制最大数量，切到后台时暂停生成，避免堆积
+     ======================================================= */
+  var petalsBox = document.getElementById('petals');
+  var MAX_PETALS = 42;   // 屏幕上同时存在的花瓣上限
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function createPetal() {
+    if (petalsBox.childElementCount >= MAX_PETALS) return; // 超出上限则不生成
+
+    var size     = 4 + Math.random() * 5;              // 直径 4~9px
+    var left     = Math.random() * 100;                // 起始横向位置（vw）
+    var fallTime = 9 + Math.random() * 8;              // 下落 9~17s
+    var swayTime = 2.5 + Math.random() * 2.5;          // 摇摆周期
+    var delay    = Math.random() * 2;                  // 入场延迟，避免整齐划一
+    var opacity  = 0.45 + Math.random() * 0.5;
+
+    var p = document.createElement('div');
+    p.className = 'petal';
+    p.style.left = left + 'vw';
+    p.style.width = p.style.height = size.toFixed(1) + 'px';
+    p.style.opacity = opacity.toFixed(2);
+    p.style.animationDuration = fallTime.toFixed(2) + 's';
+    p.style.animationDelay = delay.toFixed(2) + 's';
+
+    var inner = document.createElement('i');
+    inner.style.animationDuration = swayTime.toFixed(2) + 's';
+    inner.style.animationDelay = (-Math.random() * swayTime).toFixed(2) + 's';
+
+    p.appendChild(inner);
+    // 动画结束即销毁节点，绝不堆积
+    p.addEventListener('animationend', function () {
+      if (p.parentNode) p.parentNode.removeChild(p);
+    });
+
+    petalsBox.appendChild(p);
+  }
+
+  if (!reduce) {
+    // 首屏先铺一批，之后定时补充
+    for (var i = 0; i < 14; i++) createPetal();
+    setInterval(function () {
+      if (document.hidden) return;   // 页面不可见时不生成
+      createPetal();
+    }, 420);
+  }
+})();
+</script>
+</body>
+</html>
